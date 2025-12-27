@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+eggs/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Cache
+cache/
+*.cache
+.cache/
+
+# OSMnx cache (large files)
+cache/*.graphml
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Test files
+test_*.py
+!src/test_*.py
+
+# Temporary files
+*.tmp
+*.temp
+
+# Large output files (optional - uncomment to exclude)
+# output/maps/*.html
+
+# Credentials/secrets (if any)
+*.env
+.env
+secrets.json
+credentials.json
