@@ -1,8 +1,3 @@
-"""
-Flood Risk Scoring Module.
-Calculates flood risk using humidity weights and Random Forest model.
-"""
-
 import numpy as np
 import pandas as pd
 from typing import List, Tuple, Optional
@@ -18,9 +13,6 @@ from .config import (
 
 
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """
-    Calculate the great circle distance between two points in meters.
-    """
     R = 6371000  # Earth's radius in meters
     
     lat1_rad = np.radians(lat1)
@@ -39,17 +31,7 @@ def calculate_point_flood_risk(
     flood_points: pd.DataFrame,
     humidity_weight: int = 1
 ) -> Tuple[float, int]:
-    """
-    Calculate flood risk for a point based on proximity to flood areas.
-    
-    Args:
-        point: (latitude, longitude) tuple
-        flood_points: DataFrame with flood point locations
-        humidity_weight: Current humidity-based weight (1-5)
-    
-    Returns:
-        Tuple of (risk_score, severity_level)
-    """
+
     if len(flood_points) == 0:
         return 0.0, 1
     
@@ -96,17 +78,7 @@ def calculate_route_flood_risk(
     flood_points: pd.DataFrame,
     humidity_weight: int = 1
 ) -> Tuple[float, List[int]]:
-    """
-    Calculate total flood risk along a route.
-    
-    Args:
-        route_coords: List of (lat, lon) tuples representing the route
-        flood_points: DataFrame with flood point locations
-        humidity_weight: Current humidity-based weight (1-5)
-    
-    Returns:
-        Tuple of (total_risk, list of severity levels per segment)
-    """
+
     total_risk = 0.0
     severities = []
     
@@ -119,10 +91,7 @@ def calculate_route_flood_risk(
 
 
 class FloodRiskModel:
-    """
-    Random Forest-based flood risk prediction model.
-    """
-    
+
     def __init__(self):
         self.model = RandomForestClassifier(
             n_estimators=RF_N_ESTIMATORS,
@@ -137,17 +106,7 @@ class FloodRiskModel:
         evacuation_points: pd.DataFrame,
         weather_data: pd.DataFrame
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        Prepare training data from available datasets.
-        
-        Features:
-        - Distance to nearest flood point
-        - Average humidity
-        - Number of nearby flood points
-        
-        Target:
-        - Flood risk level (1-5)
-        """
+
         features = []
         labels = []
         
@@ -188,12 +147,7 @@ class FloodRiskModel:
         evacuation_points: pd.DataFrame,
         weather_data: pd.DataFrame
     ) -> dict:
-        """
-        Train the Random Forest model.
-        
-        Returns:
-            Dictionary with training metrics
-        """
+
         X, y = self.prepare_training_data(flood_points, evacuation_points, weather_data)
         
         if len(X) < 10:
@@ -232,12 +186,7 @@ class FloodRiskModel:
         flood_points: pd.DataFrame,
         humidity: float
     ) -> int:
-        """
-        Predict flood risk level for a location.
-        
-        Returns:
-            Risk level (1-5)
-        """
+
         if not self.is_trained:
             # Fall back to rule-based scoring
             humidity_weight, _ = get_humidity_weight(humidity)

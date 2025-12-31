@@ -1,0 +1,30 @@
+==================================================
+ROUTE SELECTION MODEL - EVALUATION METRICS
+==================================================
+
+Training Samples: 52668
+Testing Samples:  13167
+
+Training Accuracy: 0.9225 (92.3%)
+Testing Accuracy:  0.9151 (91.5%)
+Cohen's Kappa:     0.8575
+
+Feature Importance:
+  Jarak_KM: 0.3604
+  Waktu_Tempuh_Menit: 0.3518
+  Bobot_Risiko: 0.1665
+  Kelembapan: 0.0318
+  Curah_Hujan: 0.0894
+
+==================================================
+Classification Report:
+==================================================
+              precision    recall  f1-score   support
+
+    Tercepat       0.87      0.90      0.88      2473
+     Teraman       0.91      0.97      0.94      6985
+    Seimbang       0.97      0.82      0.89      3709
+
+    accuracy                           0.92     13167
+   macro avg       0.92      0.90      0.90     13167
+weighted avg       0.92      0.92      0.91     13167

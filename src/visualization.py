@@ -1,8 +1,3 @@
-"""
-Visualization Module using Folium.
-Creates interactive maps with flood risk, evacuation points, and routes.
-"""
-
 import folium
 from folium import plugins
 import pandas as pd
@@ -19,12 +14,6 @@ from .flood_risk import calculate_point_flood_risk
 
 
 def create_base_map(center: Tuple[float, float] = CILACAP_CENTER) -> folium.Map:
-    """
-    Create base map centered on Cilacap.
-    
-    Returns:
-        Folium Map object
-    """
     m = folium.Map(
         location=center,
         zoom_start=MAP_ZOOM_START,
@@ -44,9 +33,6 @@ def add_flood_markers(
     flood_points: pd.DataFrame,
     humidity: float = 70.0
 ) -> folium.Map:
-    """
-    Add flood location markers to map.
-    """
     humidity_weight, weight_label = get_humidity_weight(humidity)
     
     flood_group = folium.FeatureGroup(name=f'Titik Banjir (Risiko: {weight_label})')
@@ -92,9 +78,6 @@ def add_evacuation_markers(
     flood_points: pd.DataFrame = None,
     humidity: float = 70.0
 ) -> folium.Map:
-    """
-    Add evacuation point markers to map.
-    """
     evac_group = folium.FeatureGroup(name='Titik Evakuasi')
     
     humidity_weight, _ = get_humidity_weight(humidity)
@@ -145,9 +128,7 @@ def add_flood_heatmap(
     flood_points: pd.DataFrame,
     humidity: float = 70.0
 ) -> folium.Map:
-    """
-    Add flood risk heatmap layer.
-    """
+
     humidity_weight, weight_label = get_humidity_weight(humidity)
     
     # Prepare heatmap data
@@ -184,9 +165,7 @@ def add_route(
     route_info: Dict,
     color: str = ROUTE_COLOR
 ) -> folium.Map:
-    """
-    Add route polyline to map.
-    """
+
     if not route_info.get('success', False):
         return m
     
@@ -228,9 +207,7 @@ def add_route(
 
 
 def add_route_info_box(m: folium.Map, route_info: Dict) -> folium.Map:
-    """
-    Add information box showing route details.
-    """
+
     if not route_info.get('success', False):
         return m
     
@@ -273,9 +250,6 @@ def add_route_info_box(m: folium.Map, route_info: Dict) -> folium.Map:
 
 
 def add_legend(m: folium.Map) -> folium.Map:
-    """
-    Add legend to map.
-    """
     legend_html = """
     <div style="position: fixed; 
                 top: 10px; 
@@ -314,9 +288,6 @@ def create_complete_map(
     show_heatmap: bool = True,
     title: str = "Sistem Evakuasi Banjir Cilacap"
 ) -> folium.Map:
-    """
-    Create complete map with all layers.
-    """
     m = create_base_map()
     
     # Add title
@@ -355,9 +326,6 @@ def create_complete_map(
 
 
 def save_map(m: folium.Map, filename: str) -> Path:
-    """
-    Save map to HTML file.
-    """
     MAPS_DIR.mkdir(parents=True, exist_ok=True)
     filepath = MAPS_DIR / filename
     m.save(str(filepath))

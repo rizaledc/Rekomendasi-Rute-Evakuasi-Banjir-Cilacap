@@ -1,8 +1,3 @@
-"""
-Route Data Manager.
-Loads and manages travel time data from Google Maps dataset.
-"""
-
 import pandas as pd
 from pathlib import Path
 from typing import Dict, Optional, Tuple
@@ -11,12 +6,6 @@ from .flood_risk import haversine_distance
 
 
 def load_travel_time_lookup() -> Dict[Tuple[str, str], Dict]:
-    """
-    Load travel time data into a lookup dictionary.
-    
-    Returns:
-        Dict mapping (origin_name, shelter_name) -> {distance_km, time_min, kondisi}
-    """
     filepath = DATA_DIR / "Data_Waktu_Tempuh_Final_Fixed.xlsx"
     
     if not filepath.exists():
@@ -49,17 +38,6 @@ def get_travel_info(
     origin_name: str,
     shelter_name: str
 ) -> Optional[Dict]:
-    """
-    Get travel info for origin-shelter pair.
-    
-    Args:
-        lookup: Travel time lookup dictionary
-        origin_name: Name of origin (desa/village)
-        shelter_name: Name of shelter
-    
-    Returns:
-        Dict with distance_km, time_min, kondisi or None if not found
-    """
     # Try exact match first
     key = (origin_name.lower().strip(), shelter_name.lower().strip())
     if key in lookup:
@@ -82,18 +60,6 @@ def calculate_shelter_safety_score(
     shelter_lon: float,
     flood_points: pd.DataFrame
 ) -> float:
-    """
-    Calculate safety score for a shelter based on distance from ALL flood points.
-    Higher score = safer (farther from floods).
-    
-    Args:
-        shelter_lat: Shelter latitude
-        shelter_lon: Shelter longitude
-        flood_points: DataFrame with all flood points
-    
-    Returns:
-        Safety score (average distance to all floods in km)
-    """
     if len(flood_points) == 0:
         return 100.0  # Max safe
     
@@ -122,17 +88,6 @@ def rank_shelters_multi_criteria(
     flood_points: pd.DataFrame,
     travel_lookup: Dict
 ) -> Dict[str, Dict]:
-    """
-    Rank shelters and identify best options for each criteria.
-    
-    Args:
-        shelters: List of shelter dicts with id, name, lat, lon, distance_km, travel_time_min
-        flood_points: DataFrame with all flood points
-        travel_lookup: Travel time lookup dictionary
-    
-    Returns:
-        Dict with 'tercepat', 'teraman', 'seimbang' recommendations
-    """
     if not shelters:
         return {'tercepat': None, 'teraman': None, 'seimbang': None}
     

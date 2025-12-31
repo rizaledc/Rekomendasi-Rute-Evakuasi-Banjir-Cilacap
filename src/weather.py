@@ -1,8 +1,3 @@
-"""
-Weather Simulation Module.
-Simulates flood conditions based on humidity data from weather station.
-"""
-
 import pandas as pd
 import numpy as np
 from typing import Tuple, List, Dict
@@ -13,12 +8,6 @@ from .data_loader import load_weather_data
 
 
 def get_current_weather_simulation() -> Dict:
-    """
-    Get simulated current weather conditions based on station data.
-    
-    Returns:
-        Dictionary with weather conditions
-    """
     weather_df = load_weather_data()
     
     if 'Humidity' in weather_df.columns:
@@ -57,75 +46,37 @@ def get_current_weather_simulation() -> Dict:
 
 
 def simulate_normal_condition() -> Tuple[float, str]:
-    """
-    Simulate normal weather condition (low flood risk).
-    
-    Returns:
-        Tuple of (humidity, description)
-    """
     # Normal humidity (≤ 70%)
     humidity = np.random.uniform(55, 70)
     return humidity, "Kondisi Normal - Risiko Banjir Rendah"
 
 
 def simulate_low_risk_condition() -> Tuple[float, str]:
-    """
-    Simulate low risk condition.
-    
-    Returns:
-        Tuple of (humidity, description)
-    """
     # Low risk humidity (71-80%)
     humidity = np.random.uniform(71, 80)
     return humidity, "Potensi Hujan Ringan - Risiko Banjir Rendah"
 
 
 def simulate_medium_risk_condition() -> Tuple[float, str]:
-    """
-    Simulate medium risk condition.
-    
-    Returns:
-        Tuple of (humidity, description)
-    """
     # Medium risk humidity (81-90%)
     humidity = np.random.uniform(81, 90)
     return humidity, "Potensi Hujan Sedang - Risiko Banjir Sedang"
 
 
 def simulate_high_risk_condition() -> Tuple[float, str]:
-    """
-    Simulate high flood risk condition.
-    
-    Returns:
-        Tuple of (humidity, description)
-    """
     # High risk humidity (91-95%)
     humidity = np.random.uniform(91, 95)
     return humidity, "Potensi Hujan Lebat - Risiko Banjir Tinggi"
 
 
 def simulate_very_high_risk_condition() -> Tuple[float, str]:
-    """
-    Simulate very high flood risk condition.
-    
-    Returns:
-        Tuple of (humidity, description)
-    """
     # Very high risk humidity (> 95%)
     humidity = np.random.uniform(96, 100)
     return humidity, "Potensi Hujan Sangat Lebat - Risiko Banjir Sangat Tinggi"
 
 
 def get_simulation_scenario(scenario: str) -> Tuple[float, str]:
-    """
-    Get weather simulation based on scenario name.
-    
-    Args:
-        scenario: One of 'normal', 'low', 'medium', 'high', 'very_high', 'random'
-    
-    Returns:
-        Tuple of (humidity, description)
-    """
+
     scenarios = {
         'normal': simulate_normal_condition,
         'low': simulate_low_risk_condition,
@@ -148,16 +99,6 @@ def generate_random_origin(
     flood_points: pd.DataFrame,
     evacuation_points: pd.DataFrame
 ) -> Tuple[float, float]:
-    """
-    Generate random origin point for simulation.
-    
-    Args:
-        flood_points: DataFrame with flood locations
-        evacuation_points: DataFrame with evacuation locations
-    
-    Returns:
-        Tuple of (latitude, longitude)
-    """
     # Combine all points to get area bounds
     all_lats = list(flood_points['Latitude']) + list(evacuation_points['Latitude'])
     all_lons = list(flood_points['Longitude']) + list(evacuation_points['Longitude'])

@@ -1,9 +1,3 @@
-"""
-Interactive Map Generator with Click-to-Route Functionality.
-Creates maps where clicking a flood point shows routes to nearby safe evacuation points.
-Features: Real road routes, multi-route options (Tercepat/Teraman/Seimbang).
-"""
-
 import json
 import folium
 from folium import plugins
@@ -27,14 +21,9 @@ def get_safe_shelters_for_flood_point(
     evacuation_df: pd.DataFrame,
     flood_df: pd.DataFrame
 ) -> List[Dict]:
-    """
-    Get list of safe shelters for a given flood point.
-    
-    Rules:
-    - Shelter must NOT be within 100m of ANY flood point
-    - Shelter must be within 5km of the clicked flood point
-    """
+
     safe_shelters = []
+    all_safe_shelters = []  # All safe shelters regardless of distance
     
     for idx, shelter in evacuation_df.iterrows():
         shelter_lat = shelter['Latitude']
@@ -43,10 +32,6 @@ def get_safe_shelters_for_flood_point(
         # Calculate distance from clicked flood point to shelter
         dist_to_flood = haversine_distance(flood_lat, flood_lon, shelter_lat, shelter_lon)
         dist_km = dist_to_flood / 1000
-        
-        # Check if within 5km range
-        if dist_km > MAX_ROUTE_DISTANCE_KM:
-            continue
         
         # Check if shelter is too close to ANY flood point (100m exclusion)
         is_safe = True
@@ -67,7 +52,7 @@ def get_safe_shelters_for_flood_point(
                 shelter_lat, shelter_lon, flood_df
             )
             
-            safe_shelters.append({
+            shelter_data = {
                 'id': int(idx),
                 'name': str(name)[:50],
                 'lat': float(shelter_lat),
@@ -75,40 +60,119 @@ def get_safe_shelters_for_flood_point(
                 'distance_km': round(dist_km, 2),
                 'travel_time_min': round(travel_time, 1),
                 'safety_score': safety_score
-            })
+            }
+            
+            all_safe_shelters.append(shelter_data)
+            
+            # Only add to main list if within 5km
+            if dist_km <= MAX_ROUTE_DISTANCE_KM:
+                safe_shelters.append(shelter_data)
     
     # Sort by distance
     safe_shelters.sort(key=lambda x: x['distance_km'])
+    all_safe_shelters.sort(key=lambda x: x['distance_km'])
+    
+    # Fallback: if no shelters within 5km, return the nearest safe shelter
+    if not safe_shelters and all_safe_shelters:
+        print(f"No shelters within 5km, using nearest shelter at {all_safe_shelters[0]['distance_km']:.1f}km")
+        return [all_safe_shelters[0]]
     
     return safe_shelters
 
 
-def get_recommended_shelters(shelters: List[Dict]) -> Dict[str, Optional[Dict]]:
-    """Get the 3 recommended shelters: tercepat, teraman, seimbang."""
+# Load AI Models
+try:
+    import joblib
+    MODELS_DIR = Path("output/models")
+    RISK_MODEL = joblib.load(MODELS_DIR / "rf_risk_model.pkl")
+    ROUTE_MODEL = joblib.load(MODELS_DIR / "rf_route_model.pkl")
+    print("AI Models loaded successfully")
+    AI_AVAILABLE = True
+except Exception as e:
+    print(f"Warning: Could not load AI models: {e}")
+    AI_AVAILABLE = False
+
+
+def get_recommended_shelters(shelters: List[Dict], flood_context: Optional[Dict] = None) -> Dict[str, Optional[Dict]]:
+    """
+    Get recommended shelters using AI models if available, otherwise fallback to heuristics.
+    """
     if not shelters:
         return {'tercepat': None, 'teraman': None, 'seimbang': None}
+        
+    candidates = {'tercepat': [], 'teraman': [], 'seimbang': []}
     
-    # Tercepat: shortest distance
-    tercepat = min(shelters, key=lambda s: s['distance_km'])
+    # Heuristics (Fallback)
+    heuristic_tercepat = min(shelters, key=lambda s: s['distance_km'])
+    heuristic_teraman = max(shelters, key=lambda s: s['safety_score'])
     
-    # Teraman: highest safety score
-    teraman = max(shelters, key=lambda s: s['safety_score'])
-    
-    # Seimbang: balanced score
+    # Calculate balanced score for heuristics
     max_dist = max(s['distance_km'] for s in shelters) or 1
     max_safety = max(s['safety_score'] for s in shelters) or 1
+    for s in shelters:
+        dist_score = 1 - (s['distance_km'] / max_dist)
+        safety_norm = s['safety_score'] / max_safety
+        s['balanced_score'] = (dist_score * 0.5) + (safety_norm * 0.5)
+    heuristic_seimbang = max(shelters, key=lambda s: s.get('balanced_score', 0))
+
+    if AI_AVAILABLE and flood_context is not None:
+        try:
+            # Prepare batch input for AI
+            humidity = float(flood_context.get('Kelembapan', 80.0))
+            rainfall = float(flood_context.get('Curah_Hujan', 5.0))
+            
+            for shelter in shelters:
+                # 1. Predict Risk Level (Bobot_Risiko)
+                # Features: [Jarak (m), Kelembapan, Curah Hujan]
+                dist_m = shelter['distance_km'] * 1000
+                risk_input = [[dist_m, humidity, rainfall]]
+                risk_level = int(RISK_MODEL.predict(risk_input)[0])
+                
+                # 2. Predict Route Type
+                # Features: [Jarak_KM, Waktu_Tempuh, Bobot_Risiko, Kelembapan, Curah_Hujan]
+                route_input = [[
+                    shelter['distance_km'],
+                    shelter['travel_time_min'],
+                    risk_level,
+                    humidity,
+                    rainfall
+                ]]
+                route_type = int(ROUTE_MODEL.predict(route_input)[0])
+                
+                # 0=Tercepat, 1=Teraman, 2=Seimbang
+                if route_type == 0:
+                    candidates['tercepat'].append(shelter)
+                elif route_type == 1:
+                    candidates['teraman'].append(shelter)
+                elif route_type == 2:
+                    candidates['seimbang'].append(shelter)
+            
+            # Select best candidate from AI predictions
+            # If AI didn't pick any for a category, fallback to heuristic
+            
+            # Tercepat: Min time among AI candidates
+            final_tercepat = min(candidates['tercepat'], key=lambda s: s['travel_time_min']) if candidates['tercepat'] else heuristic_tercepat
+            
+            # Teraman: Max safety among AI candidates
+            final_teraman = max(candidates['teraman'], key=lambda s: s['safety_score']) if candidates['teraman'] else heuristic_teraman
+            
+            # Seimbang: Max balanced score among AI candidates
+            final_seimbang = max(candidates['seimbang'], key=lambda s: s.get('balanced_score', 0)) if candidates['seimbang'] else heuristic_seimbang
+            
+            return {
+                'tercepat': final_tercepat,
+                'teraman': final_teraman,
+                'seimbang': final_seimbang
+            }
+            
+        except Exception as e:
+            print(f"AI Prediction failed: {e}, falling back to heuristics")
     
-    for shelter in shelters:
-        dist_score = 1 - (shelter['distance_km'] / max_dist)
-        safety_norm = shelter['safety_score'] / max_safety
-        shelter['balanced_score'] = (dist_score * 0.5) + (safety_norm * 0.5)
-    
-    seimbang = max(shelters, key=lambda s: s.get('balanced_score', 0))
-    
+    # Fallback to pure heuristics
     return {
-        'tercepat': tercepat,
-        'teraman': teraman,
-        'seimbang': seimbang
+        'tercepat': heuristic_tercepat,
+        'teraman': heuristic_teraman,
+        'seimbang': heuristic_seimbang
     }
 
 
@@ -117,10 +181,6 @@ def precompute_routes(
     evacuation_df: pd.DataFrame,
     road_graph=None
 ) -> Dict:
-    """
-    Pre-compute all route geometries from flood points to shelters.
-    Returns dict: flood_id -> shelter_id -> list of (lat, lon) coordinates
-    """
     from .routing import load_road_network, get_route_geometry
     
     print("Pre-computing road routes...")
@@ -165,9 +225,7 @@ def create_interactive_flood_map(
     humidity: float = 70.0,
     precompute: bool = True
 ) -> folium.Map:
-    """
-    Create interactive map with real road routes and multi-route options.
-    """
+
     humidity_weight, humidity_label = get_humidity_weight(humidity)
     
     # Create base map

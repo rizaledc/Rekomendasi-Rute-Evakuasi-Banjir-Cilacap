@@ -1,8 +1,3 @@
-"""
-Routing Module using OSMnx.
-Handles road network loading and flood-aware route calculation.
-"""
-
 import os
 import osmnx as ox
 import networkx as nx
@@ -23,17 +18,31 @@ ox.settings.log_console = False
 ox.settings.use_cache = True
 ox.settings.cache_folder = str(CACHE_DIR)
 
+# Ferry port coordinates for cross-sea routing (Cilacap mainland <-> Nusakambangan)
+FERRY_PORTS = {
+    'wijayapura': {'lat': -7.73295, 'lon': 109.00695, 'name': 'Pelabuhan Wijayapura'},
+    'sodong': {'lat': -7.75, 'lon': 108.917, 'name': 'Dermaga Sodong'}
+}
+
+# Nusakambangan island bounding box (approximate)
+NUSAKAMBANGAN_BOUNDS = {
+    'south': -7.80,
+    'north': -7.70,
+    'west': 108.80,
+    'east': 108.98
+}
+
+SEA_ROUTE_COLOR = '#87CEEB'  # Light blue for ferry crossing
+
+
+def is_on_nusakambangan(lat: float, lon: float) -> bool:
+    bounds = NUSAKAMBANGAN_BOUNDS
+    return (bounds['south'] <= lat <= bounds['north'] and
+            bounds['west'] <= lon <= bounds['east'])
+
 
 def load_road_network(force_download: bool = False) -> nx.MultiDiGraph:
-    """
-    Load or download Cilacap road network.
-    
-    Args:
-        force_download: If True, download fresh data from OSM
-    
-    Returns:
-        NetworkX MultiDiGraph of the road network
-    """
+
     cache_file = CACHE_DIR / "cilacap_road_network.graphml"
     
     if cache_file.exists() and not force_download:
@@ -73,12 +82,7 @@ def load_road_network(force_download: bool = False) -> nx.MultiDiGraph:
 
 
 def find_nearest_node(G: nx.MultiDiGraph, lat: float, lon: float) -> int:
-    """
-    Find the nearest network node to given coordinates.
-    
-    Returns:
-        Node ID
-    """
+
     return ox.nearest_nodes(G, X=lon, Y=lat)
 
 
@@ -87,17 +91,7 @@ def calculate_edge_weights(
     flood_points: pd.DataFrame,
     humidity_weight: int = 1
 ) -> nx.MultiDiGraph:
-    """
-    Add flood-aware weights to network edges using batch processing.
-    
-    Args:
-        G: Road network graph
-        flood_points: DataFrame with flood point locations
-        humidity_weight: Current humidity-based weight (1-5)
-    
-    Returns:
-        Graph with updated edge weights
-    """
+
     print("Calculating flood-aware edge weights...")
     
     # Pre-compute flood point arrays for faster distance calculation
@@ -156,9 +150,9 @@ def calculate_edge_weights(
         
         # Progress indicator
         if edge_count % 10000 == 0:
-            print(f"  Processed {edge_count}/{total_edges} edges...")
+            print(f"Processed {edge_count}/{total_edges} edges...")
     
-    print(f"  Completed processing {total_edges} edges")
+    print(f"Completed processing {total_edges} edges")
     return G
 
 
@@ -170,20 +164,6 @@ def find_flood_aware_route(
     humidity: float = 70.0,
     use_flood_weights: bool = True
 ) -> Dict:
-    """
-    Find optimal route considering flood risk.
-    
-    Args:
-        G: Road network graph
-        origin: (lat, lon) of starting point
-        destination: (lat, lon) of destination
-        flood_points: DataFrame with flood point locations
-        humidity: Current humidity percentage
-        use_flood_weights: If True, avoid flood-prone areas
-    
-    Returns:
-        Dictionary with route information
-    """
     # Get humidity weight
     humidity_weight, weight_label = get_humidity_weight(humidity)
     
@@ -257,20 +237,6 @@ def find_nearest_safe_evacuation(
     humidity: float = 70.0,
     max_risk_level: int = 3
 ) -> Dict:
-    """
-    Find the nearest safe evacuation point that avoids high flood risk.
-    
-    Args:
-        G: Road network graph
-        origin: Starting location (lat, lon)
-        evacuation_points: DataFrame with evacuation locations
-        flood_points: DataFrame with flood point locations
-        humidity: Current humidity percentage
-        max_risk_level: Maximum acceptable risk level (1-5)
-    
-    Returns:
-        Route information to best evacuation point
-    """
     humidity_weight, _ = get_humidity_weight(humidity)
     
     # Filter evacuation points by safety
@@ -327,36 +293,123 @@ def get_route_geometry(
     destination: Tuple[float, float],
     weight: str = 'length'
 ) -> Optional[List[Tuple[float, float]]]:
-    """
-    Get road geometry coordinates between two points.
-    
-    Args:
-        G: Road network graph (drive network type)
-        origin: (lat, lon) of starting point
-        destination: (lat, lon) of destination
-        weight: Edge weight to use for shortest path
-    
-    Returns:
-        List of (lat, lon) tuples along the road, or None if no path
-    """
     try:
-        # Find nearest nodes
         origin_node = find_nearest_node(G, origin[0], origin[1])
         dest_node = find_nearest_node(G, destination[0], destination[1])
         
-        # Find shortest path
         route_nodes = nx.shortest_path(G, origin_node, dest_node, weight=weight)
         
-        # Extract coordinates
+        # Extract detailed edge geometries (not just node coordinates)
         coords = []
-        for node in route_nodes:
-            node_data = G.nodes[node]
-            coords.append((node_data['y'], node_data['x']))  # (lat, lon)
         
-        return coords
+        for i in range(len(route_nodes) - 1):
+            u = route_nodes[i]
+            v = route_nodes[i + 1]
+            
+            edge_data = G.get_edge_data(u, v)
+            
+            if edge_data:
+                edge = list(edge_data.values())[0]
+                
+                # Check if edge has geometry (detailed road shape)
+                if 'geometry' in edge:
+                    geom = edge['geometry']
+                    edge_coords = list(geom.coords)
+                    
+                    # Check direction
+                    u_data = G.nodes[u]
+                    start_coord = edge_coords[0]
+                    
+                    dist_to_u = ((u_data['x'] - start_coord[0])**2 + 
+                                 (u_data['y'] - start_coord[1])**2)
+                    
+                    if dist_to_u > 0.0001:
+                        edge_coords = edge_coords[::-1]
+                    
+                    for j, (lon, lat) in enumerate(edge_coords):
+                        if i == 0 and j == 0:
+                            coords.append((lat, lon))
+                        elif j > 0:
+                            coords.append((lat, lon))
+                else:
+                    if i == 0:
+                        u_data = G.nodes[u]
+                        coords.append((u_data['y'], u_data['x']))
+                    
+                    v_data = G.nodes[v]
+                    coords.append((v_data['y'], v_data['x']))
+            else:
+                if i == 0:
+                    u_data = G.nodes[u]
+                    coords.append((u_data['y'], u_data['x']))
+                
+                v_data = G.nodes[v]
+                coords.append((v_data['y'], v_data['x']))
+        
+        # Remove consecutive duplicates
+        if coords:
+            cleaned = [coords[0]]
+            for coord in coords[1:]:
+                if coord != cleaned[-1]:
+                    cleaned.append(coord)
+            coords = cleaned
+        
+        return coords if coords else None
     
     except (nx.NetworkXNoPath, nx.NodeNotFound):
         return None
+
+def get_cross_sea_route(
+    G: nx.MultiDiGraph,
+    origin: Tuple[float, float],
+    destination: Tuple[float, float]
+) -> Optional[Dict]:
+    origin_on_island = is_on_nusakambangan(origin[0], origin[1])
+    dest_on_island = is_on_nusakambangan(destination[0], destination[1])
+    
+    # Both on same land mass - normal route
+    if origin_on_island == dest_on_island:
+        coords = get_route_geometry(G, origin, destination)
+        if coords:
+            return {'segments': [{'coords': coords, 'type': 'land'}], 'is_cross_sea': False}
+        return None
+    
+    # Cross-sea route needed
+    if origin_on_island:
+        # Origin on Nusakambangan, destination on mainland
+        port_origin = FERRY_PORTS['sodong']
+        port_dest = FERRY_PORTS['wijayapura']
+    else:
+        # Origin on mainland, destination on Nusakambangan
+        port_origin = FERRY_PORTS['wijayapura']
+        port_dest = FERRY_PORTS['sodong']
+    
+    segments = []
+    
+    # Segment 1: Origin to departure port (land)
+    seg1 = get_route_geometry(G, origin, (port_origin['lat'], port_origin['lon']))
+    if seg1:
+        segments.append({'coords': seg1, 'type': 'land'})
+    else:
+        # Fallback: direct line to port
+        segments.append({'coords': [origin, (port_origin['lat'], port_origin['lon'])], 'type': 'land'})
+    
+    # Segment 2: Ferry crossing (sea)
+    ferry_coords = [
+        (port_origin['lat'], port_origin['lon']),
+        (port_dest['lat'], port_dest['lon'])
+    ]
+    segments.append({'coords': ferry_coords, 'type': 'sea'})
+    
+    # Segment 3: Arrival port to destination (land)
+    seg3 = get_route_geometry(G, (port_dest['lat'], port_dest['lon']), destination)
+    if seg3:
+        segments.append({'coords': seg3, 'type': 'land'})
+    else:
+        # Fallback: direct line from port to destination
+        segments.append({'coords': [(port_dest['lat'], port_dest['lon']), destination], 'type': 'land'})
+    
+    return {'segments': segments, 'is_cross_sea': True}
 
 
 def compute_routes_for_flood_point(
@@ -364,29 +417,22 @@ def compute_routes_for_flood_point(
     flood_lat: float,
     flood_lon: float,
     shelters: List[Dict]
-) -> Dict[int, List[Tuple[float, float]]]:
-    """
-    Pre-compute road routes from a flood point to all its shelters.
-    
-    Args:
-        G: Road network graph
-        flood_lat: Flood point latitude
-        flood_lon: Flood point longitude
-        shelters: List of shelter dicts with 'id', 'lat', 'lon'
-    
-    Returns:
-        Dict mapping shelter_id -> list of route coordinates
-    """
+) -> Dict[int, any]:
     routes = {}
     
     for shelter in shelters:
-        coords = get_route_geometry(
+        route_result = get_cross_sea_route(
             G,
             (flood_lat, flood_lon),
             (shelter['lat'], shelter['lon'])
         )
-        if coords:
-            routes[shelter['id']] = coords
+        if route_result:
+            if route_result['is_cross_sea']:
+                # Store segments for cross-sea route
+                routes[shelter['id']] = route_result
+            else:
+                # Simple route - just coords
+                routes[shelter['id']] = route_result['segments'][0]['coords']
     
     return routes
 
@@ -396,15 +442,15 @@ if __name__ == "__main__":
     from .data_loader import load_flood_data, load_evacuation_data
     from .config import CILACAP_CENTER
     
-    print("Loading data...")
+    print("Loading data")
     flood_df = load_flood_data()
     evac_df = load_evacuation_data()
     
-    print("\nLoading road network...")
+    print("\nLoading road network")
     G = load_road_network()
     
-    print("\nTesting route calculation...")
-    # Route from Alun-alun to first evacuation point
+    print("\nTesting route calculation")
+    #Route from Alun-alun to first evacuation point
     if len(evac_df) > 0:
         dest = (evac_df.iloc[0]['Latitude'], evac_df.iloc[0]['Longitude'])
         route = find_flood_aware_route(G, CILACAP_CENTER, dest, flood_df, humidity=85)

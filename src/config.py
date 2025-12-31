@@ -1,14 +1,7 @@
-"""
-Configuration module for Flood Evacuation Route Recommendation System.
-Contains all constants, file paths, and configuration settings.
-"""
-
 import os
 from pathlib import Path
 
-# =============================================================================
-# Project Paths
-# =============================================================================
+# paths
 PROJECT_ROOT = Path(__file__).parent.parent
 DATA_DIR = PROJECT_ROOT / "Banjir Cilacap"
 OUTPUT_DIR = PROJECT_ROOT / "output"
@@ -16,9 +9,7 @@ MAPS_DIR = OUTPUT_DIR / "maps"
 REPORTS_DIR = OUTPUT_DIR / "reports"
 CACHE_DIR = PROJECT_ROOT / "cache"
 
-# =============================================================================
-# Data Files
-# =============================================================================
+# data files
 FLOOD_DATA_FILE = DATA_DIR / "Data_Banjir_FIX_120.xlsx"
 EVACUATION_DATA_FILE = DATA_DIR / "Data_Evakuasi_FIX_314.xlsx"
 TRAVEL_TIME_FILE = DATA_DIR / "Data_Waktu_Tempuh_Final_Fixed.xlsx"
@@ -26,9 +17,7 @@ FLOOD_PRONE_VILLAGES_FILE = DATA_DIR / "Data Desa Rawan Banjr di Cilacap.xlsx"
 WEATHER_STATION_FILE = DATA_DIR / "Stasiun Metalurgi Tunggul Wulung.xlsx"
 EVACUATION_CSV_FILE = DATA_DIR / "tempatevakuasinew.csv"
 
-# =============================================================================
-# Geographic Configuration - Cilacap
-# =============================================================================
+# geografis cilacap
 CILACAP_CENTER = (-7.727456, 109.009519)  # Alun-alun Cilacap
 CILACAP_BOUNDS = {
     "north": -7.1,
@@ -40,9 +29,7 @@ CILACAP_BOUNDS = {
 # OpenStreetMap query location
 CILACAP_OSM_QUERY = "Cilacap, Central Java, Indonesia"
 
-# =============================================================================
-# Humidity to Flood Weight Mapping (BMKG Standard)
-# =============================================================================
+# humidity weight mapping (standar BMKG)
 HUMIDITY_WEIGHTS = {
     "normal": {"range": (0, 70), "weight": 1, "label": "Normal"},
     "low": {"range": (71, 80), "weight": 2, "label": "Rendah"},
@@ -52,15 +39,6 @@ HUMIDITY_WEIGHTS = {
 }
 
 def get_humidity_weight(humidity: float) -> tuple:
-    """
-    Get flood weight based on humidity percentage.
-    
-    Args:
-        humidity: Humidity percentage (0-100)
-    
-    Returns:
-        tuple: (weight, label)
-    """
     if humidity <= 70:
         return 1, "Normal"
     elif humidity <= 80:
@@ -72,17 +50,13 @@ def get_humidity_weight(humidity: float) -> tuple:
     else:
         return 5, "Sangat Tinggi"
 
-# =============================================================================
-# Routing Configuration
-# =============================================================================
+# routing config
 AVERAGE_SPEED_KMH = 30  # Average speed for travel time calculation
 FLOOD_RISK_RADIUS_METERS = 100  # Radius around flood points - shelters within this cannot be selected
 MAX_ROUTE_DISTANCE_KM = 5  # Maximum route distance from flood point to shelter
 FLOOD_WEIGHT_MULTIPLIER = 2.0  # Weight multiplier for flood-prone areas
 
-# =============================================================================
-# Visualization Configuration
-# =============================================================================
+# visualisasi
 MAP_TILES = "CartoDB positron"
 MAP_ZOOM_START = 11
 
@@ -100,9 +74,7 @@ FLOOD_MARKER_COLOR = "red"
 ROUTE_COLOR = "#0066FF"
 ROUTE_WEIGHT = 4
 
-# =============================================================================
-# Random Forest Configuration
-# =============================================================================
+# RF model params
 RF_N_ESTIMATORS = 100
 RF_MAX_DEPTH = 10
 RF_RANDOM_STATE = 42

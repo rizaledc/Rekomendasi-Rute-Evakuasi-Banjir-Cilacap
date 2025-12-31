@@ -8,3 +8,5 @@ folium>=0.15.0
 openpyxl>=3.1.0
 matplotlib>=3.7.0
 shapely>=2.0.0
+earthengine-api>=1.0.0
+geemap>=0.30.0

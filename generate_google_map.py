@@ -1,7 +1,3 @@
-"""
-Generate Google Maps style interactive map with Cancel button.
-"""
-
 import json
 import folium
 from folium import plugins
@@ -28,8 +24,6 @@ def create_google_maps_style(
     evacuation_df: pd.DataFrame,
     humidity: float = 70.0
 ) -> folium.Map:
-    """Create interactive map with Google Maps tiles and Cancel button."""
-    
     humidity_weight, humidity_label = get_humidity_weight(humidity)
     
     # Create base map with Google Maps tiles
@@ -68,7 +62,7 @@ def create_google_maps_style(
     folium.TileLayer('OpenStreetMap', name='OpenStreetMap').add_to(m)
     
     # Prepare flood point data
-    print("Preparing flood point data...")
+    print("Preparing flood point data")
     flood_point_data = {}
     for idx, fp in flood_df.iterrows():
         shelters = get_safe_shelters_for_flood_point(
@@ -90,7 +84,7 @@ def create_google_maps_style(
         }
     
     # Pre-compute routes
-    print("Pre-computing routes (this takes a few minutes)...")
+    print("Pre-computing routes (this takes a few minutes)")
     route_data = precompute_routes(flood_df, evacuation_df)
     
     # JavaScript with Cancel button
@@ -168,7 +162,7 @@ def create_google_maps_style(
         map.fitBounds(currentRoute.getBounds(), {{padding: [50, 50]}});
         
         var typeLabel = routeType ? routeType.toUpperCase() : 'MANUAL';
-        var typeEmoji = routeType === 'tercepat' ? '🔵' : (routeType === 'teraman' ? '🟢' : '🟡');
+        var typeEmoji = routeType === 'tercepat' ? '' : (routeType === 'teraman' ? '' : '');
         
         document.getElementById('route-info').innerHTML = 
             '<h4>' + typeEmoji + ' Rute ' + typeLabel + '</h4>' +
@@ -187,11 +181,7 @@ def create_google_maps_style(
                      Object.values(window).find(v => v instanceof L.Map);
     }}, 1000);
     </script>
-    """
-    
-    # Info panel
-    info_panel = """
-    <div id="route-info" style="
+        <div id="route-info" style="
         position: fixed;
         bottom: 20px;
         left: 20px;
@@ -207,11 +197,7 @@ def create_google_maps_style(
     ">
         <p>Klik titik banjir (merah) untuk melihat shelter tersedia</p>
     </div>
-    """
-    
-    # Legend
-    legend = f"""
-    <div style="
+        <div style="
         position: fixed;
         top: 20px;
         right: 20px;
@@ -225,15 +211,15 @@ def create_google_maps_style(
         font-size: 12px;
         box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     ">
-        <h4 style="margin:0 0 10px 0;">🗺️ Legenda</h4>
-        <p style="margin:3px 0;">🔴 Titik Banjir (klik untuk rute)</p>
-        <p style="margin:3px 0;">🟢 Shelter Aman</p>
-        <p style="margin:3px 0;">🟡 Shelter Kurang Aman</p>
+        <h4 style="margin:0 0 10px 0;"> Legenda</h4>
+        <p style="margin:3px 0;"> Titik Banjir (klik untuk rute)</p>
+        <p style="margin:3px 0;"> Shelter Aman</p>
+        <p style="margin:3px 0;"> Shelter Kurang Aman</p>
         <hr style="margin:10px 0;">
         <p style="margin:3px 0;"><b>Jenis Rute:</b></p>
-        <p style="margin:3px 0;">🔵 Tercepat</p>
-        <p style="margin:3px 0;">🟢 Teraman</p>
-        <p style="margin:3px 0;">🟡 Seimbang</p>
+        <p style="margin:3px 0;"> Tercepat</p>
+        <p style="margin:3px 0;"> Teraman</p>
+        <p style="margin:3px 0;"> Seimbang</p>
         <hr style="margin:10px 0;">
         <p style="margin:3px 0; font-size:10px; color:#666;">
             Radius: {FLOOD_RISK_RADIUS_METERS}m | Max: {MAX_ROUTE_DISTANCE_KM}km
@@ -246,7 +232,7 @@ def create_google_maps_style(
     m.get_root().html.add_child(folium.Element(legend))
     
     # Add flood markers with Cancel button
-    print("Adding flood markers...")
+    print("Adding flood markers")
     flood_group = folium.FeatureGroup(name='Titik Banjir')
     for idx, fp in flood_df.iterrows():
         flood_id = int(idx)
@@ -256,7 +242,7 @@ def create_google_maps_style(
         
         # Build popup with Cancel button
         popup_content = f'''<div style="width:280px; max-height:350px; overflow-y:auto;">
-            <h4 style="margin:0 0 10px 0; color:#FF0000;">🌊 {flood_info['name']}</h4>
+            <h4 style="margin:0 0 10px 0; color:#FF0000;"> {flood_info['name']}</h4>
             <p style="font-size:10px; color:#666;">Radius: {FLOOD_RISK_RADIUS_METERS}m | Max: {MAX_ROUTE_DISTANCE_KM}km</p>'''
         
         if len(flood_info['shelters']) == 0:
@@ -264,14 +250,14 @@ def create_google_maps_style(
         else:
             rec = flood_info['recommendations']
             popup_content += '<div style="background:#f0f8ff; padding:8px; border-radius:5px; margin:5px 0;">'
-            popup_content += '<p style="margin:0 0 5px 0;"><b>🎯 REKOMENDASI:</b></p>'
+            popup_content += '<p style="margin:0 0 5px 0;"><b> REKOMENDASI:</b></p>'
             
             for shelter in flood_info['shelters']:
                 if rec['tercepat'] == shelter['id']:
                     popup_content += f'''<button onclick="showRoute({flood_id},{shelter['id']},'tercepat')" 
                         style="display:block; width:100%; margin:2px 0; padding:5px; text-align:left; 
                         background:#e3f2fd; border:2px solid #2196f3; border-radius:4px; cursor:pointer; font-size:11px;">
-                        🔵 <b>Tercepat:</b> {shelter['name'][:25]}<br>
+                         <b>Tercepat:</b> {shelter['name'][:25]}<br>
                         <small>{shelter['distance_km']}km • {shelter['travel_time_min']}mnt</small>
                     </button>'''
                     break
@@ -281,7 +267,7 @@ def create_google_maps_style(
                     popup_content += f'''<button onclick="showRoute({flood_id},{shelter['id']},'teraman')" 
                         style="display:block; width:100%; margin:2px 0; padding:5px; text-align:left; 
                         background:#e8f5e9; border:2px solid #4caf50; border-radius:4px; cursor:pointer; font-size:11px;">
-                        🟢 <b>Teraman:</b> {shelter['name'][:25]}<br>
+                         <b>Teraman:</b> {shelter['name'][:25]}<br>
                         <small>{shelter['distance_km']}km • skor:{shelter['safety_score']:.1f}</small>
                     </button>'''
                     break
@@ -291,7 +277,7 @@ def create_google_maps_style(
                     popup_content += f'''<button onclick="showRoute({flood_id},{shelter['id']},'seimbang')" 
                         style="display:block; width:100%; margin:2px 0; padding:5px; text-align:left; 
                         background:#fff8e1; border:2px solid #ff9800; border-radius:4px; cursor:pointer; font-size:11px;">
-                        🟡 <b>Seimbang:</b> {shelter['name'][:25]}<br>
+                         <b>Seimbang:</b> {shelter['name'][:25]}<br>
                         <small>{shelter['distance_km']}km • skor:{shelter['safety_score']:.1f}</small>
                     </button>'''
                     break
@@ -303,13 +289,13 @@ def create_google_maps_style(
                            if s['id'] not in [rec['tercepat'], rec['teraman'], rec['seimbang']]]
             
             if other_shelters:
-                popup_content += '<p style="margin:10px 0 5px 0;"><b>📋 OPSI LAINNYA:</b></p>'
+                popup_content += '<p style="margin:10px 0 5px 0;"><b> OPSI LAINNYA:</b></p>'
                 popup_content += '<div style="max-height:100px; overflow-y:auto;">'
                 for shelter in other_shelters[:6]:
                     popup_content += f'''<button onclick="showRoute({flood_id},{shelter['id']},'')" 
                         style="display:block; width:100%; margin:2px 0; padding:4px; text-align:left; 
                         background:#f5f5f5; border:1px solid #ccc; border-radius:4px; cursor:pointer; font-size:10px;">
-                        🏠 {shelter['name'][:30]}<br>
+                         {shelter['name'][:30]}<br>
                         <small style="color:#666;">{shelter['distance_km']}km</small>
                     </button>'''
                 popup_content += '</div>'
@@ -319,7 +305,7 @@ def create_google_maps_style(
         <div style="margin-top:10px; text-align:center;">
             <button onclick="cancelSelection()" 
                 style="background:#888; color:white; padding:8px 20px; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">
-                ❌ Cancel
+                 Cancel
             </button>
         </div>
         </div>'''
@@ -332,13 +318,13 @@ def create_google_maps_style(
             fill=True,
             fillColor=color,
             fillOpacity=0.8,
-            tooltip=f"🌊 {fp.get('Desa', 'Titik Banjir')} - {safe_count} shelter"
+            tooltip=f" {fp.get('Desa', 'Titik Banjir')} - {safe_count} shelter"
         ).add_to(flood_group)
     
     flood_group.add_to(m)
     
     # Add evacuation markers
-    print("Adding shelter markers...")
+    print("Adding shelter markers")
     evac_group = folium.FeatureGroup(name='Shelter Evakuasi')
     for idx, evac in evacuation_df.iterrows():
         lat, lon = evac['Latitude'], evac['Longitude']
@@ -357,7 +343,7 @@ def create_google_maps_style(
             location=[lat, lon],
             popup=f"<b>{name}</b><br>Status: {'Aman' if is_safe else 'Dekat banjir'}",
             icon=folium.Icon(color=icon_color, icon='home', prefix='fa'),
-            tooltip=f"🏠 {name[:30]}"
+            tooltip=f" {name[:30]}"
         ).add_to(evac_group)
     
     evac_group.add_to(m)
@@ -373,7 +359,7 @@ def create_google_maps_style(
     <h3 style="position:fixed; top:20px; left:50%; transform:translateX(-50%); 
                background:white; padding:10px 20px; border-radius:10px; 
                border:2px solid #333; z-index:9999; font-family:Arial;">
-        🗺️ Peta Evakuasi Banjir - Google Maps Style
+         Peta Evakuasi Banjir - Google Maps Style
     </h3>
     """
     m.get_root().html.add_child(folium.Element(title))
@@ -382,14 +368,14 @@ def create_google_maps_style(
 
 
 if __name__ == "__main__":
-    print("Loading data...")
+    print("Loading data")
     flood_df = load_flood_data()
     evac_df = load_evacuation_data()
     
-    print("Creating Google Maps style interactive map...")
+    print("Creating Google Maps style interactive map")
     m = create_google_maps_style(flood_df, evac_df, humidity=85)
     
     # Save
     output_path = MAPS_DIR / "Peta_Google_Maps.html"
     m.save(str(output_path))
-    print(f"\n✅ Saved: {output_path}")
+    print(f"\n Saved: {output_path}")

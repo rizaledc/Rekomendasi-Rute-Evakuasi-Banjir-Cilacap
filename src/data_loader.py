@@ -1,8 +1,3 @@
-"""
-Data Loader Module for Flood Evacuation System.
-Handles loading and validation of all datasets.
-"""
-
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -19,17 +14,6 @@ warnings.filterwarnings('ignore')
 
 
 def filter_by_bounds(df: pd.DataFrame, lat_col: str, lon_col: str) -> pd.DataFrame:
-    """
-    Filter dataframe to include only points within Cilacap bounds.
-    
-    Args:
-        df: DataFrame with coordinate columns
-        lat_col: Name of latitude column
-        lon_col: Name of longitude column
-    
-    Returns:
-        Filtered DataFrame
-    """
     bounds = CILACAP_BOUNDS
     mask = (
         (df[lat_col] >= bounds["south"]) &
@@ -41,12 +25,7 @@ def filter_by_bounds(df: pd.DataFrame, lat_col: str, lon_col: str) -> pd.DataFra
 
 
 def load_flood_data() -> pd.DataFrame:
-    """
-    Load flood point data from Excel file.
-    
-    Returns:
-        DataFrame with columns: No, Kecamatan, Desa, Latitude, Longitude
-    """
+
     df = pd.read_excel(FLOOD_DATA_FILE)
     
     # Standardize column names
@@ -67,19 +46,33 @@ def load_flood_data() -> pd.DataFrame:
     df = df.dropna(subset=['Latitude', 'Longitude'])
     
     # Filter by bounds
+    # Filter by bounds
     df = filter_by_bounds(df, 'Latitude', 'Longitude')
     
+    # --- ADD WEATHER DATA FOR MODEL PREDICTION ---
+    try:
+        weather_df = load_weather_data()
+        avg_humidity = weather_df['Humidity'].mean() if 'Humidity' in weather_df else 80.0
+        avg_rainfall = weather_df['Rainfall'].mean() if 'Rainfall' in weather_df else 5.0
+        
+        # Fill missing values with reasonable defaults if weather file is empty/broken
+        if pd.isna(avg_humidity): avg_humidity = 80.0
+        if pd.isna(avg_rainfall): avg_rainfall = 5.0
+        
+        print(f"Adding weather context: Humidity={avg_humidity:.1f}%, Rainfall={avg_rainfall:.1f}mm")
+        df['Kelembapan'] = avg_humidity
+        df['Curah_Hujan'] = avg_rainfall
+    except Exception as e:
+        print(f"Warning: Could not add weather data: {e}")
+        df['Kelembapan'] = 80.0
+        df['Curah_Hujan'] = 5.0
+        
     print(f"Loaded {len(df)} flood points")
     return df
 
 
 def load_evacuation_data() -> pd.DataFrame:
-    """
-    Load evacuation point data from Excel file.
-    
-    Returns:
-        DataFrame with evacuation locations
-    """
+
     df = pd.read_excel(EVACUATION_DATA_FILE)
     
     # Standardize column names
@@ -107,12 +100,7 @@ def load_evacuation_data() -> pd.DataFrame:
 
 
 def load_travel_time_data() -> pd.DataFrame:
-    """
-    Load travel time matrix data.
-    
-    Returns:
-        DataFrame with travel time/distance between locations
-    """
+
     df = pd.read_excel(TRAVEL_TIME_FILE)
     
     # Standardize column names
@@ -123,12 +111,7 @@ def load_travel_time_data() -> pd.DataFrame:
 
 
 def load_flood_prone_villages() -> pd.DataFrame:
-    """
-    Load flood-prone village data.
-    
-    Returns:
-        DataFrame with flood-prone village information
-    """
+
     df = pd.read_excel(FLOOD_PRONE_VILLAGES_FILE)
     
     # Standardize column names
@@ -150,12 +133,6 @@ def load_flood_prone_villages() -> pd.DataFrame:
 
 
 def load_weather_data() -> pd.DataFrame:
-    """
-    Load weather station data (humidity, rainfall).
-    
-    Returns:
-        DataFrame with weather observations
-    """
     df = pd.read_excel(WEATHER_STATION_FILE)
     
     # Standardize column names
@@ -180,12 +157,7 @@ def load_weather_data() -> pd.DataFrame:
 
 
 def load_all_data() -> dict:
-    """
-    Load all datasets into a dictionary.
-    
-    Returns:
-        Dictionary with all loaded DataFrames
-    """
+
     return {
         'flood': load_flood_data(),
         'evacuation': load_evacuation_data(),

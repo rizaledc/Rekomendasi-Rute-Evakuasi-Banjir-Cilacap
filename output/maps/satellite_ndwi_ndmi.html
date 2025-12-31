@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_4791911d1f06862af74eeb951f2dace3 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+</head>
+<body>
+    
+    
+    <div style="position: fixed; bottom: 20px; right: 20px; width: 200px;
+                padding: 15px; background: white; border: 2px solid #333;
+                border-radius: 10px; z-index: 9999; font-family: Arial; font-size: 12px;">
+        <h4 style="margin:0 0 10px 0;">📡 Legenda Satelit</h4>
+        <p style="margin:2px 0;"><b>NDWI (Water):</b></p>
+        <p style="margin:2px 0;">🔴 Kering ← → Berair 🔵</p>
+        <p style="margin:2px 0;"><b>NDMI (Moisture):</b></p>
+        <p style="margin:2px 0;">🟤 Kering ← → Lembap 🟢</p>
+        <hr style="margin:10px 0;">
+        <p style="font-size:10px; color:#666;">
+            Data: Sentinel-2<br>
+            Periode: 2024-10-01 - 2024-12-16
+        </p>
+    </div>
+    
+    
+    <h3 style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+               background: white; padding: 10px 20px; border-radius: 10px;
+               border: 2px solid #333; z-index: 9999; font-family: Arial;">
+        🛰️ Analisis Satelit NDWI/NDMI - Cilacap
+    </h3>
+    
+    
+            <div class="folium-map" id="map_4791911d1f06862af74eeb951f2dace3" ></div>
+        
+</body>
+<script>
+    
+    
+            var map_4791911d1f06862af74eeb951f2dace3 = L.map(
+                "map_4791911d1f06862af74eeb951f2dace3",
+                {
+                    center: [-7.727456, 109.009519],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 11,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_46c88ea988139dcacde5fd9af1c44661 = L.tileLayer(
+                "https://mt1.google.com/vt/lyrs=m\u0026x={x}\u0026y={y}\u0026z={z}",
+                {
+  "minZoom": 0,
+  "maxZoom": 20,
+  "maxNativeZoom": 20,
+  "noWrap": false,
+  "attribution": "Google Maps",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_46c88ea988139dcacde5fd9af1c44661.addTo(map_4791911d1f06862af74eeb951f2dace3);
+        
+    
+            var tile_layer_570301e5f0a979fb7422e1386c1ea391 = L.tileLayer(
+                "https://mt1.google.com/vt/lyrs=s\u0026x={x}\u0026y={y}\u0026z={z}",
+                {
+  "minZoom": 0,
+  "maxZoom": 20,
+  "maxNativeZoom": 20,
+  "noWrap": false,
+  "attribution": "Google Satellite",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_570301e5f0a979fb7422e1386c1ea391.addTo(map_4791911d1f06862af74eeb951f2dace3);
+        
+    
+            var tile_layer_4cb66cac6c976e35022143e49f3344f6 = L.tileLayer(
+                "https://earthengine.googleapis.com/v1/projects/tugasbesarcilacap/maps/09f6fdae02b6a9046408d599fd717458-66c92c7f6ed40f17f4120ceda5730846/tiles/{z}/{x}/{y}",
+                {
+  "minZoom": 0,
+  "maxZoom": 18,
+  "maxNativeZoom": 18,
+  "noWrap": false,
+  "attribution": "Sentinel-2 RGB",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_4cb66cac6c976e35022143e49f3344f6.addTo(map_4791911d1f06862af74eeb951f2dace3);
+        
+    
+            var tile_layer_6e2fb22c61fc9ab50047d3b1cbdfa31e = L.tileLayer(
+                "https://earthengine.googleapis.com/v1/projects/tugasbesarcilacap/maps/47039379f97f16cd8c15a95f558f7a5b-f4ec9b220332ddbd6d8ad44668709aa4/tiles/{z}/{x}/{y}",
+                {
+  "minZoom": 0,
+  "maxZoom": 18,
+  "maxNativeZoom": 18,
+  "noWrap": false,
+  "attribution": "NDWI",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_6e2fb22c61fc9ab50047d3b1cbdfa31e.addTo(map_4791911d1f06862af74eeb951f2dace3);
+        
+    
+            var tile_layer_d5b3b5a83b09bfe9edb2a8c9bcb130ee = L.tileLayer(
+                "https://earthengine.googleapis.com/v1/projects/tugasbesarcilacap/maps/1cb7ff088a194c34d90239b1eaa7f6bd-797824cb5db1d62da3cd6293dbbce5a1/tiles/{z}/{x}/{y}",
+                {
+  "minZoom": 0,
+  "maxZoom": 18,
+  "maxNativeZoom": 18,
+  "noWrap": false,
+  "attribution": "NDMI",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            var tile_layer_9ed9a15c74967231c13760f10ca96d00 = L.tileLayer(
+                "https://earthengine.googleapis.com/v1/projects/tugasbesarcilacap/maps/840b848affc191d78171f928abe897f8-54374b19094da4dfde1df1e623c9f10b/tiles/{z}/{x}/{y}",
+                {
+  "minZoom": 0,
+  "maxZoom": 18,
+  "maxNativeZoom": 18,
+  "noWrap": false,
+  "attribution": "Water Mask",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 0.6,
+}
+
+            );
+        
+    
+            var layer_control_4a19ffe544565c0cd6045cf0260f0d4c_layers = {
+                base_layers : {
+                    "Google Maps" : tile_layer_46c88ea988139dcacde5fd9af1c44661,
+                    "Google Satelit" : tile_layer_570301e5f0a979fb7422e1386c1ea391,
+                },
+                overlays :  {
+                    "Sentinel-2 RGB" : tile_layer_4cb66cac6c976e35022143e49f3344f6,
+                    "NDWI (Water Index)" : tile_layer_6e2fb22c61fc9ab50047d3b1cbdfa31e,
+                    "NDMI (Moisture Index)" : tile_layer_d5b3b5a83b09bfe9edb2a8c9bcb130ee,
+                    "Water Bodies (NDWI \u003e 0.3)" : tile_layer_9ed9a15c74967231c13760f10ca96d00,
+                },
+            };
+            let layer_control_4a19ffe544565c0cd6045cf0260f0d4c = L.control.layers(
+                layer_control_4a19ffe544565c0cd6045cf0260f0d4c_layers.base_layers,
+                layer_control_4a19ffe544565c0cd6045cf0260f0d4c_layers.overlays,
+                {
+  "position": "topright",
+  "collapsed": false,
+  "autoZIndex": true,
+}
+            ).addTo(map_4791911d1f06862af74eeb951f2dace3);
+
+        
+</script>
+</html>
