@@ -53,11 +53,22 @@ def load_road_network(force_download: bool = False) -> nx.MultiDiGraph:
         # Ensure cache directory exists
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
         
+        # Custom filter to include ALL driveable roads including bridges
+        # This is more comprehensive than network_type='drive'
+        custom_filter = (
+            '["highway"]["area"!~"yes"]'
+            '["highway"!~"cycleway|footway|path|pedestrian|steps|track|corridor|'
+            'elevator|escalator|proposed|construction|bridleway|abandoned|'
+            'platform|raceway"]'
+            '["motor_vehicle"!~"no"]["motorcar"!~"no"]'
+            '["service"!~"parking|parking_aisle|driveway|private|emergency_access"]'
+        )
+        
         try:
-            # Download network for Cilacap
+            # Download network for Cilacap with custom filter
             G = ox.graph_from_place(
                 CILACAP_OSM_QUERY,
-                network_type='drive',
+                custom_filter=custom_filter,
                 simplify=True
             )
             
@@ -72,7 +83,7 @@ def load_road_network(force_download: bool = False) -> nx.MultiDiGraph:
             G = ox.graph_from_bbox(
                 north=-7.1, south=-7.9,
                 east=109.5, west=108.5,
-                network_type='drive',
+                custom_filter=custom_filter,
                 simplify=True
             )
             ox.save_graphml(G, cache_file)
